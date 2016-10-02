@@ -5,3 +5,4 @@ authors = ["Ruan Leitão Nunes <ruanrln@gmail.com>"]
 
 [dependencies]
 cgmath = "0.12.0"
+image = "0.10.3"

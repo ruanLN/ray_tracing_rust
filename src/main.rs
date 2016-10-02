@@ -1,5 +1,9 @@
 extern crate cgmath;
+extern crate image;
 use cgmath::{Point3,Vector3,InnerSpace};
+use std::fs::File;
+use std::path::Path;
+use image::GenericImage;
 use std::f32;
 
 #[derive(Debug)]
@@ -30,7 +34,19 @@ fn hit(r: &Ray, t: &Triangle) -> Option<Point3<f32>> {
 }
 
 fn main() {
-    
+    //Construct a new by repeated calls to the supplied closure.
+    let img = ImageBuffer::from_fn(512, 512, |x, y| {
+        if x % 2 == 0 {
+            image::Luma([0u8])
+        } else {
+            image::Luma([255u8])
+        }
+    });
+
+    let ref mut fout = File::create(&Path::new("test.png")).unwrap();
+
+    // Write the contents of this image to the Writer in PNG format.
+    let _ = img.save(fout, image::PNG).unwrap();
 }
 
 #[cfg(test)]
