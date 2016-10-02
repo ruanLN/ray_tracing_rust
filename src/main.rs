@@ -1,9 +1,8 @@
 extern crate cgmath;
 extern crate image;
-use cgmath::{Point3,Vector3,InnerSpace};
-use std::fs::File;
+use cgmath::{Point3,Vector3,InnerSpace,EuclideanSpace};
+use image::ImageBuffer;
 use std::path::Path;
-use image::GenericImage;
 use std::f32;
 
 #[derive(Debug)]
@@ -26,33 +25,70 @@ fn hit(r: &Ray, t: &Triangle) -> Option<Point3<f32>> {
     let edge2 = t.p2 - t.p0;
     let triangle_normal = edge1.cross(edge2);
     let epsilon: f32 = 0.0001;
+
+    //verify if the tringle and ray are parallel
     let den = triangle_normal.dot(r.direction);
-    if(den.abs() <= epsilon) {
+    if den.abs() <= epsilon {
         return None;
     }
-    return Some(t.p0);
+    //verify if the triangle is in front of the ray
+    let d = -(triangle_normal.dot(t.p0.to_vec()));
+    let num = triangle_normal.dot(r.origin.to_vec()) + d;
+    let distance = -(num/den);
+    if distance < epsilon {
+        return None;
+    }
+    r.direction.normalize();
+    let intersection_point = r.origin + r.direction * distance;
+
+    //verify if the intersection_point is inside t
+    let vp0 = intersection_point + (-t.p0.to_vec());
+    let perpendicular_vp0 = (t.p1 - t.p0).cross(vp0.to_vec());
+    if triangle_normal.dot(perpendicular_vp0) < 0f32 {
+        return None;
+    }
+    let vp1 = intersection_point + (-t.p1.to_vec());
+    let perpendicular_vp1 = (t.p2 - t.p1).cross(vp1.to_vec());
+    if triangle_normal.dot(perpendicular_vp1) < 0f32 {
+        return None;
+    }
+    let vp2 = intersection_point + -(t.p2.to_vec());
+    let perpendicular_vp2 = (t.p0 - t.p2).cross(vp2.to_vec());
+    if triangle_normal.dot(perpendicular_vp2) < 0f32 {
+        return None;
+    }
+
+    return Some(intersection_point);
 }
 
 fn main() {
-    //Construct a new by repeated calls to the supplied closure.
-    let img = ImageBuffer::from_fn(512, 512, |x, y| {
-        if x % 2 == 0 {
-            image::Luma([0u8])
+    let p0 = Point3{x:  0.0, y:  10.0, z: 10.0};
+    let p1 = Point3{x: -10.0, y: -10.0, z: 10.0};
+    let p2 = Point3{x:  10.0, y: -10.0, z: 10.0};
+    let t = Triangle{p0: p0, p1: p1, p2: p2};
+
+    let (w, h) = (512, 512);
+    let img = ImageBuffer::from_fn(w, h, |x, y| {
+        let o = Point3 {x: (((w/2) as f32)-(x as f32)) as f32, y: (((h/2) as f32)-(y as f32)) as f32, z: -1000.0};
+        let d = Vector3 {x: 0.0, y:0.0, z: 11.0};
+        let r = Ray {origin: o, direction: d};
+        let ret = hit(&r, &t);
+        if ret == None {
+            return image::Luma([0u8]);
         } else {
-            image::Luma([255u8])
+            return image::Luma([255u8]);
         }
     });
 
-    let ref mut fout = File::create(&Path::new("test.png")).unwrap();
+    let ref fout = &Path::new("test.png");
 
     // Write the contents of this image to the Writer in PNG format.
-    let _ = img.save(fout, image::PNG).unwrap();
+    let _ = img.save(fout).unwrap();
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use cgmath::{Point3,Vector3,InnerSpace};
+    use cgmath::{Point3,Vector3};
     #[test]
     fn hit_should_hit() {
         let o = Point3{x: 0.0, y: 0.0, z: 0.0};
@@ -73,7 +109,6 @@ mod tests {
         let p0 = Point3{x: 10.0, y: 3.0, z: 0.0};
         let p1 = Point3{x: 13.0, y: -1.0, z: 0.0};
         let p2 = Point3{x: 7.0, y: -1.0, z: 0.0};
-        let p_expected = Point3{x: 10.0, y: 0.0, z: 0.0};
         let r = super::Ray{origin: o, direction: d};
         let t = super::Triangle{p0: p0, p1: p1, p2: p2};
         let result = super::hit(&r,&t);
