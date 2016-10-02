@@ -1,8 +1,7 @@
 extern crate cgmath;
-extern crate image;
+extern crate bmp;
 use cgmath::{Point3,Vector3,InnerSpace,EuclideanSpace};
-use image::ImageBuffer;
-use std::path::Path;
+use bmp::{Image,Pixel};
 use std::f32;
 
 #[derive(Debug)]
@@ -68,22 +67,21 @@ fn main() {
     let t = Triangle{p0: p0, p1: p1, p2: p2};
 
     let (w, h) = (512, 512);
-    let img = ImageBuffer::from_fn(w, h, |x, y| {
+    let mut img = Image::new(w, h);
+    for (x, y) in img.coordinates() {
         let o = Point3 {x: (((w/2) as f32)-(x as f32)) as f32, y: (((h/2) as f32)-(y as f32)) as f32, z: -1000.0};
         let d = Vector3 {x: 0.0, y:0.0, z: 11.0};
         let r = Ray {origin: o, direction: d};
         let ret = hit(&r, &t);
         if ret == None {
-            return image::Luma([0u8]);
+            img.set_pixel(x, y, Pixel { r: 255, g: 255, b: 255 });
         } else {
-            return image::Luma([255u8]);
+            img.set_pixel(x, y, Pixel { r: 0, g: 0, b: 0 });
         }
-    });
-
-    let ref fout = &Path::new("test.png");
+    }
 
     // Write the contents of this image to the Writer in PNG format.
-    let _ = img.save(fout).unwrap();
+    let _ = img.save("test.bmp");
 }
 
 #[cfg(test)]
