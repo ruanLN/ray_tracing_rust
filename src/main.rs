@@ -10,11 +10,20 @@ struct Ray {
     direction: Vector3<f32>
 }
 
+type Color = Pixel;
+
 #[derive(Debug)]
 struct Triangle {
     p0: Point3<f32>,
     p1: Point3<f32>,
-    p2: Point3<f32>
+    p2: Point3<f32>,
+    difuse_color: Color
+}
+
+#[derive(Debug)]
+struct Light {
+    o: Point3<f32>,
+    color: Color
 }
 
 // this functions return None when the Ray didn't hit the Triangle
@@ -60,11 +69,21 @@ fn hit(r: &Ray, t: &Triangle) -> Option<Point3<f32>> {
     return Some(intersection_point);
 }
 
+// this function return the color of the point (must receive a scene in future)
+fn trace(r: &Ray, t: &Triangle) -> Pixel {
+    let point = hit(r, t);
+    if point == None {
+        Pixel {r: 255, g:255, b:255}
+    } else {
+        t.difuse_color
+    }
+}
+
 fn main() {
     let p0 = Point3{x:  0.0, y:  10.0, z: 10.0};
     let p1 = Point3{x: -10.0, y: -10.0, z: 10.0};
     let p2 = Point3{x:  10.0, y: -10.0, z: 10.0};
-    let t = Triangle{p0: p0, p1: p1, p2: p2};
+    let t = Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
 
     let (w, h) = (512, 512);
     let mut img = Image::new(w, h);
@@ -72,12 +91,8 @@ fn main() {
         let o = Point3 {x: (((w/2) as f32)-(x as f32)) as f32, y: (((h/2) as f32)-(y as f32)) as f32, z: -1000.0};
         let d = Vector3 {x: 0.0, y:0.0, z: 11.0};
         let r = Ray {origin: o, direction: d};
-        let ret = hit(&r, &t);
-        if ret == None {
-            img.set_pixel(x, y, Pixel { r: 255, g: 255, b: 255 });
-        } else {
-            img.set_pixel(x, y, Pixel { r: 0, g: 0, b: 0 });
-        }
+        let ret = trace(&r, &t);
+        img.set_pixel(x, y, ret);
     }
 
     // Write the contents of this image to the Writer in PNG format.
@@ -87,6 +102,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use cgmath::{Point3,Vector3};
+    use super::Color;
     #[test]
     fn hit_should_hit() {
         let o = Point3{x: 0.0, y: 0.0, z: 0.0};
@@ -96,7 +112,7 @@ mod tests {
         let p2 = Point3{x: 10.0, y: -1.0, z: -3.0};
         let p_expected = Point3{x: 10.0, y: 0.0, z: 0.0};
         let r = super::Ray{origin: o, direction: d};
-        let t = super::Triangle{p0: p0, p1: p1, p2: p2};
+        let t = super::Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
         let result = super::hit(&r,&t);
         assert_eq!(result, Some(p_expected));
     }
@@ -108,7 +124,7 @@ mod tests {
         let p1 = Point3{x: 13.0, y: -1.0, z: 0.0};
         let p2 = Point3{x: 7.0, y: -1.0, z: 0.0};
         let r = super::Ray{origin: o, direction: d};
-        let t = super::Triangle{p0: p0, p1: p1, p2: p2};
+        let t = super::Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
         let result = super::hit(&r,&t);
         assert_eq!(result, None);
     }
