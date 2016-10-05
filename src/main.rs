@@ -1,7 +1,8 @@
 extern crate cgmath;
 extern crate bmp;
-use cgmath::{Point3,Vector3,InnerSpace,EuclideanSpace};
+use cgmath::{Point3,Vector3,InnerSpace,EuclideanSpace,MetricSpace};
 use bmp::{Image,Pixel};
+use std::collections::LinkedList;
 use std::f32;
 
 #[derive(Debug)]
@@ -24,6 +25,12 @@ struct Triangle {
 struct Light {
     o: Point3<f32>,
     color: Color
+}
+
+#[derive(Debug)]
+struct Scene {
+    objects: LinkedList<Triangle>,
+    lights: LinkedList<Light>
 }
 
 // this functions return None when the Ray didn't hit the Triangle
@@ -70,28 +77,40 @@ fn hit(r: &Ray, t: &Triangle) -> Option<Point3<f32>> {
 }
 
 // this function return the color of the point (must receive a scene in future)
-fn trace(r: &Ray, t: &Triangle) -> Pixel {
-    let point = hit(r, t);
-    if point == None {
-        Pixel {r: 255, g:255, b:255}
-    } else {
-        t.difuse_color
+fn trace(r: &Ray, scene: &mut Scene) -> Pixel {
+    let mut iter = scene.objects.iter();
+    let mut min_distance = f32::INFINITY;
+    let mut final_color = Pixel {r: 255, g:255, b:255};
+    while let Some(t) = iter.next() {
+        if let Some(point) = hit(r, t) {
+            let distance = point.distance(r.origin);
+            if distance < min_distance {
+                min_distance = distance;
+                final_color = t.difuse_color;
+            }
+        }
     }
+    return final_color;
 }
 
 fn main() {
     let p0 = Point3{x:  0.0, y:  10.0, z: 10.0};
+    let p0_1 = Point3{x:  0.0, y:  20.0, z: 11.0};
     let p1 = Point3{x: -10.0, y: -10.0, z: 10.0};
     let p2 = Point3{x:  10.0, y: -10.0, z: 10.0};
     let t = Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
-
+    let t2 = Triangle{p0: p0_1, p1: p1, p2: p2, difuse_color: Color{r:0, g:0, b:255}};
+    let mut objects = LinkedList::new();
+    objects.push_back(t);
+    objects.push_back(t2);
+    let mut scene = Scene{objects: objects, lights: LinkedList::new()};
     let (w, h) = (512, 512);
     let mut img = Image::new(w, h);
     for (x, y) in img.coordinates() {
         let o = Point3 {x: (((w/2) as f32)-(x as f32)) as f32, y: (((h/2) as f32)-(y as f32)) as f32, z: -1000.0};
         let d = Vector3 {x: 0.0, y:0.0, z: 11.0};
         let r = Ray {origin: o, direction: d};
-        let ret = trace(&r, &t);
+        let ret = trace(&r, &mut scene);
         img.set_pixel(x, y, ret);
     }
 
