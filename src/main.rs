@@ -43,7 +43,7 @@ fn hit(r: &Ray, t: &Triangle) -> Option<Point3<f32>> {
 
     //verify if the tringle and ray are parallel
     let den = triangle_normal.dot(r.direction);
-    if den.abs() <= epsilon {
+    if den.abs() < epsilon {
         return None;
     }
     //verify if the triangle is in front of the ray
@@ -80,7 +80,7 @@ fn hit(r: &Ray, t: &Triangle) -> Option<Point3<f32>> {
 fn trace(r: &Ray, scene: &mut Scene) -> Pixel {
     let mut iter = scene.objects.iter();
     let mut min_distance = f32::INFINITY;
-    let mut final_color = Pixel {r: 255, g:255, b:255};
+    let mut final_color = Pixel {r: 0, g:0, b:0};
     while let Some(t) = iter.next() {
         if let Some(point) = hit(r, t) {
             let distance = point.distance(r.origin);
