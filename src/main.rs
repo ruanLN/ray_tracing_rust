@@ -103,21 +103,18 @@ impl DrawableObject for Sphere {
         let delta = d.dot(dir).powf(2.0) - tmp + self.r.powf(2.0);
         
         if delta <= 0.0 {
-            return None;
+            None
         } else if delta >= 0.1 {
             let d1 = -(d.dot(r.origin - self.c)) - delta.sqrt();
             let d2 = -(d.dot(r.origin - self.c)) + delta.sqrt();
             let dist = if d1 < d2 { d1 } else { d2 };
-            let intersection_point = r.origin + d.normalize() * dist;
-           // println!("intersection_point: {:?}", intersection_point);
-            return Some(intersection_point);
+            let intersection_point = r.origin + d * dist;
+            Some(intersection_point)
         } else {
             let dist = -(d.dot(r.origin - self.c));
-            let intersection_point = r.origin + d.normalize() * dist;
-            //println!("intersection_point2: {:?}", intersection_point);            
-            return Some(intersection_point);
+            let intersection_point = r.origin + d * dist;
+            Some(intersection_point)
         }
-        None
     }
 
     fn get_difuse_color(&self) -> Color {
@@ -173,7 +170,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use cgmath::{Point3,Vector3};
-    use super::Color;
+    use super::{Color, DrawableObject};
     #[test]
     fn hit_should_hit() {
         let o = Point3{x: 0.0, y: 0.0, z: 0.0};
@@ -184,7 +181,7 @@ mod tests {
         let p_expected = Point3{x: 10.0, y: 0.0, z: 0.0};
         let r = super::Ray{origin: o, direction: d};
         let t = super::Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
-        let result = super::hit(&r,&t);
+        let result = t.hit(&r);
         assert_eq!(result, Some(p_expected));
     }
     #[test]
@@ -196,7 +193,7 @@ mod tests {
         let p2 = Point3{x: 7.0, y: -1.0, z: 0.0};
         let r = super::Ray{origin: o, direction: d};
         let t = super::Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
-        let result = super::hit(&r,&t);
+        let result = t.hit(&r);
         assert_eq!(result, None);
     }
 }
