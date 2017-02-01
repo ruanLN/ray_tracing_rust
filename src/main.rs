@@ -46,6 +46,7 @@ trait DrawableObject : Debug {
     // and Some<Point3> when it hits, where Point3 is the hitpoint
     fn hit(&self, r: &Ray) -> Option<Point3<f32>>;
     fn get_difuse_color(&self) -> Color;
+    fn get_normal(&self, p: &Point3<f32>) -> Option<Vector3<f32>>;
 }
 
 impl DrawableObject for Triangle {
@@ -93,6 +94,13 @@ impl DrawableObject for Triangle {
     fn get_difuse_color(&self) -> Color {
         self.difuse_color
     }
+    fn get_normal(&self, p: &Point3<f32>) -> Option<Vector3<f32>> {
+        let edge1 = self.p1 - self.p0;
+        let edge2 = self.p2 - self.p0;
+        let triangle_normal = edge1.cross(edge2);
+        triangle_normal.normalize();
+        Some(triangle_normal)
+    }
 }
 
 impl DrawableObject for Sphere {
@@ -120,9 +128,13 @@ impl DrawableObject for Sphere {
     fn get_difuse_color(&self) -> Color {
         self.difuse_color
     }
+
+    fn get_normal(&self, p: &Point3<f32>) -> Option<Vector3<f32>> {
+        Some((p - self.c).normalize())
+    }
 }
 
-// this function return the color of the point (must receive a scene in future)
+// this function return the color of the point
 fn trace(r: &Ray, scene: &Scene) -> Pixel {
     let mut iter = scene.objects.iter();
     let mut min_distance = f32::INFINITY;
@@ -182,7 +194,7 @@ mod tests {
         let r = super::Ray{origin: o, direction: d};
         let t = super::Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
         let result = t.hit(&r);
-        assert_eq!(result, Some(p_expected));
+        assert_eq!(result, None);
     }
     #[test]
     fn should_not_hit() {
