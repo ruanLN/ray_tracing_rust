@@ -19,6 +19,9 @@ struct Triangle {
     p0: Point3<f32>,
     p1: Point3<f32>,
     p2: Point3<f32>,
+    //n0: Vector3<f32>,
+    //n1: Vector3<f32>,
+    //n2: Vector3<f32>,
     difuse_color: Color
 }
 
@@ -95,6 +98,9 @@ impl DrawableObject for Triangle {
         self.difuse_color
     }
     fn get_normal(&self, p: &Point3<f32>) -> Option<Vector3<f32>> {
+        /*in future will use a normal for each vertex,
+        and those normals will be interpolated using barycentric coordinates
+        this will avoid useless computation and achieve normal mapping*/
         let edge1 = self.p1 - self.p0;
         let edge2 = self.p2 - self.p0;
         let triangle_normal = edge1.cross(edge2);
@@ -109,20 +115,15 @@ impl DrawableObject for Sphere {
         let dir = r.origin - self.c;
         let tmp = (r.origin - self.c).magnitude2();
         let delta = d.dot(dir).powf(2.0) - tmp + self.r.powf(2.0);
-        
-        if delta <= 0.0 {
+        if delta < 0.0 {
             None
-        } else if delta >= 0.1 {
+        } else {
             let d1 = -(d.dot(r.origin - self.c)) - delta.sqrt();
             let d2 = -(d.dot(r.origin - self.c)) + delta.sqrt();
             let dist = if d1 < d2 { d1 } else { d2 };
             let intersection_point = r.origin + d * dist;
             Some(intersection_point)
-        } else {
-            let dist = -(d.dot(r.origin - self.c));
-            let intersection_point = r.origin + d * dist;
-            Some(intersection_point)
-        }
+        } 
     }
 
     fn get_difuse_color(&self) -> Color {
@@ -159,17 +160,26 @@ fn main() {
     let t = Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
     let t2 = Triangle{p0: p0_1, p1: p1, p2: p2, difuse_color: Color{r:0, g:0, b:255}};
 
-    let s = Sphere{c: Point3{x:-50.0, y: 0.0, z: 0.0}, r: 30.0, difuse_color: Color{r:0, g:255, b:0}};
+    let s = Sphere{c: Point3{x:512.0, y: 0.0, z: 0.0}, r: 50.0, difuse_color: Color{r:0, g:0, b:(0.7 * 256.0) as u8}};
+    let s1 = Sphere{c: Point3{x:512.0, y: 150.0, z: 0.0}, r: 50.0, difuse_color: Color{r:0, g:255, b: 0}};
+    let s2 = Sphere{c: Point3{x:512.0, y: -150.0, z: 0.0}, r: 50.0, difuse_color: Color{r:(0.8 * 256.0) as u8, g:0, b:(0.4 * 256.0) as u8}};
+    let s3 = Sphere{c: Point3{x:350.0, y: 0.0, z: 0.0}, r: 20.0, difuse_color: Color{r:(0.4 * 256.0) as u8, g:(0.6 * 256.0) as u8, b:0}};
+    let s4 = Sphere{c: Point3{x:1024.0, y: 0.0, z: 0.0}, r: 150.0, difuse_color: Color{r:(0.5 * 256.0) as u8, g:(0.5 * 256.0) as u8, b:0}};
+    //let s = Sphere{c: Point3{x:512.0, y: 0.0, z: 0.0}, r: 50.0, difuse_color: Color{r:0, g:0, b:(0.7 * 256.0) as u8}};
     let mut objects = LinkedList::new();
-    objects.push_back(Box::new(t) as Box<DrawableObject>);
-    objects.push_back(Box::new(t2));
+    //objects.push_back(Box::new(t) as Box<DrawableObject>);
+    //objects.push_back(Box::new(t2));
     objects.push_back(Box::new(s) as Box<DrawableObject>);
+    objects.push_back(Box::new(s1));
+    objects.push_back(Box::new(s2));
+    objects.push_back(Box::new(s3));
+    objects.push_back(Box::new(s4));
     let scene = Scene{objects: objects, lights: LinkedList::new()};
-    let (w, h) = (512, 512);
+    let (w, h) = (1280, 720);
     let mut img = Image::new(w, h);
-    let o = Point3 {x: 0f32, y: 0f32, z: -50.0};
+    let o = Point3 {x: -512f32, y: 0f32, z: 0f32};
     for (x, y) in img.coordinates() {
-        let d = Vector3 {x: (x as i32 - (w as i32/2)) as f32, y: ((h as i32/2) - y as i32) as f32, z: 50.0}.normalize();
+        let d = Vector3 {x: 512.0, y: (x as i32 - (w as i32/2)) as f32, z: ((h as i32/2) - y as i32) as f32}.normalize();
         let r = Ray {origin: o, direction: d};
         let ret = trace(&r, &scene);
         img.set_pixel(x, y, ret);
