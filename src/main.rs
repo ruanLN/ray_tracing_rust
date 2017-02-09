@@ -12,9 +12,16 @@ struct Ray {
     direction: Vector3<f32>
 }
 
+impl Ray {
+    fn point_at_parameter(&self, t: f32) -> Point3<f32> {
+        self.origin + t * self.direction
+    }
+}
+
 type Color = Pixel;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct Triangle {
     p0: Point3<f32>,
     p1: Point3<f32>,
@@ -72,7 +79,7 @@ impl DrawableObject for Triangle {
             return None;
         }
         r.direction.normalize();
-        let intersection_point = r.origin + r.direction * distance;
+        let intersection_point = r.point_at_parameter(distance);
 
         //verify if the intersection_point is inside self
         let vp0 = intersection_point + (-self.p0.to_vec());
@@ -97,6 +104,7 @@ impl DrawableObject for Triangle {
     fn get_difuse_color(&self) -> Color {
         self.difuse_color
     }
+    #[allow(unused_variables)]
     fn get_normal(&self, p: &Point3<f32>) -> Option<Vector3<f32>> {
         /*in future will use a normal for each vertex,
         and those normals will be interpolated using barycentric coordinates
@@ -121,7 +129,7 @@ impl DrawableObject for Sphere {
             let d1 = -(d.dot(r.origin - self.c)) - delta.sqrt();
             let d2 = -(d.dot(r.origin - self.c)) + delta.sqrt();
             let dist = if d1 < d2 { d1 } else { d2 };
-            let intersection_point = r.origin + d * dist;
+            let intersection_point = r.point_at_parameter(dist);
             Some(intersection_point)
         } 
     }
@@ -153,22 +161,12 @@ fn trace(r: &Ray, scene: &Scene) -> Pixel {
 }
 
 fn main() {
-    let p0 = Point3{x:  0.0, y:  10.0, z: 10.0};
-    let p0_1 = Point3{x:  0.0, y:  20.0, z: 11.0};
-    let p1 = Point3{x: -10.0, y: -10.0, z: 10.0};
-    let p2 = Point3{x:  10.0, y: -10.0, z: 10.0};
-    let t = Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
-    let t2 = Triangle{p0: p0_1, p1: p1, p2: p2, difuse_color: Color{r:0, g:0, b:255}};
-
     let s = Sphere{c: Point3{x:512.0, y: 0.0, z: 0.0}, r: 50.0, difuse_color: Color{r:0, g:0, b:(0.7 * 256.0) as u8}};
     let s1 = Sphere{c: Point3{x:512.0, y: 150.0, z: 0.0}, r: 50.0, difuse_color: Color{r:0, g:255, b: 0}};
     let s2 = Sphere{c: Point3{x:512.0, y: -150.0, z: 0.0}, r: 50.0, difuse_color: Color{r:(0.8 * 256.0) as u8, g:0, b:(0.4 * 256.0) as u8}};
     let s3 = Sphere{c: Point3{x:350.0, y: 0.0, z: 0.0}, r: 20.0, difuse_color: Color{r:(0.4 * 256.0) as u8, g:(0.6 * 256.0) as u8, b:0}};
     let s4 = Sphere{c: Point3{x:1024.0, y: 0.0, z: 0.0}, r: 150.0, difuse_color: Color{r:(0.5 * 256.0) as u8, g:(0.5 * 256.0) as u8, b:0}};
-    //let s = Sphere{c: Point3{x:512.0, y: 0.0, z: 0.0}, r: 50.0, difuse_color: Color{r:0, g:0, b:(0.7 * 256.0) as u8}};
     let mut objects = LinkedList::new();
-    //objects.push_back(Box::new(t) as Box<DrawableObject>);
-    //objects.push_back(Box::new(t2));
     objects.push_back(Box::new(s) as Box<DrawableObject>);
     objects.push_back(Box::new(s1));
     objects.push_back(Box::new(s2));
@@ -204,7 +202,7 @@ mod tests {
         let r = super::Ray{origin: o, direction: d};
         let t = super::Triangle{p0: p0, p1: p1, p2: p2, difuse_color: Color{r:255, g:0, b:0}};
         let result = t.hit(&r);
-        assert_eq!(result, None);
+        assert_eq!(result, Some(p_expected));
     }
     #[test]
     fn should_not_hit() {
